@@ -1,0 +1,53 @@
+name: Docker Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dir:
+        description: Language directory to build
+        type: choice
+        required: true
+        default: nodejs
+        options:
+          - python
+          - nodejs
+          - php
+          - rust
+          - go
+          - java
+          - ruby
+          - dotnet
+          - elixir
+          - gradle
+
+env:
+  BUILD_DIR: ${{ inputs.dir || 'go' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: |
+          echo "Building: $BUILD_DIR"
+          docker build -t app:$BUILD_DIR $BUILD_DIR/
+
+      - name: Test container starts
+        run: |
+          docker run -d --name test-container -p 8080:8080 app:$BUILD_DIR
+          sleep 5
+          if ! curl -sf http://localhost:8080/healthz; then
+            echo "=== healthcheck failed — the container did not serve /healthz ==="
+            echo "=== container status: ==="
+            docker ps -a --filter name=test-container --format '{{.Status}}'
+            echo "=== container logs (why it exited): ==="
+            docker logs test-container || true
+            exit 1
+          fi
+          docker stop test-container
