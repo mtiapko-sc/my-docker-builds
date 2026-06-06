@@ -25,7 +25,7 @@ on:
           - gradle
 
 env:
-  BUILD_DIR: ${{ inputs.dir || 'go' }}
+  BUILD_DIR: ${{ inputs.dir || 'ruby' }}
 
 jobs:
   build:
